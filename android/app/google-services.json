@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "791140875628",
+    "project_id": "drone-quiz-app-updated",
+    "storage_bucket": "drone-quiz-app-updated.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:791140875628:android:2c8f947771cb0825a1c749",
+        "android_client_info": {
+          "package_name": "com.example.drone_quiz_app_updated"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOeqMLVFIUYrlOP6kZfWEPeH4usgkKrEw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
