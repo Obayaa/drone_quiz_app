@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -9,12 +10,16 @@ class RegistrationScreen extends StatefulWidget {
 }
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
   final _formKey = GlobalKey<FormState>();
-  String name = '';
-  String email = '';
-  String password = '';
-  String confirmPassword = '';
+
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
+
   bool _passwordVisible = false;
   bool _confirmPasswordVisible = false;
 
@@ -56,16 +61,28 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   Future<void> _register() async {
     if (_formKey.currentState?.validate() ?? false) {
-      if (password != confirmPassword) {
+      if (passwordController.text != confirmPasswordController.text) {
         _showAlertDialog('Error', 'Passwords do not match');
         return;
       }
       try {
-        final newUser = await _auth.createUserWithEmailAndPassword(
-          email: email,
-          password: password,
+        UserCredential userCredential =
+            await _auth.createUserWithEmailAndPassword(
+          email: emailController.text,
+          password: passwordController.text,
         );
-        if (newUser != null) {
+        if (userCredential.user != null) {
+          // Save user details (name, level, score) in Firestore
+          await _firestore
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .set({
+            'name': nameController.text.trim(), // Store the user's name
+            'email': emailController.text.trim(),
+            'level': 1, // Default level for new users
+            'score': 0, // Default score for new users
+          });
+
           _showSnackbar('Successfully signed up to SkyQuiz!');
           Future.delayed(const Duration(seconds: 2), () {
             Navigator.pushNamed(context, '/home');
@@ -88,9 +105,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         }
         _showAlertDialog('Registration Failed', message);
       } catch (e) {
-        _showAlertDialog('Registration Failed', 'An unknown error occurred.');
+        print('Error during registration: $e');
+        _showAlertDialog('Registration Failed', 'An error occurred: $e');
       }
     }
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -124,14 +151,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 20.0),
                 _buildTextField(
+                  controller: nameController,
                   hintText: 'Enter your name',
-                  onChanged: (value) => name = value,
-                  validator: (value) => value?.isEmpty ?? true ? 'Please enter your name' : null,
+                  validator: (value) =>
+                      value?.isEmpty ?? true ? 'Please enter your name' : null,
                 ),
                 const SizedBox(height: 20.0),
                 _buildTextField(
+                  controller: emailController,
                   hintText: 'Enter your email',
-                  onChanged: (value) => email = value,
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -145,13 +173,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 20.0),
                 _buildTextField(
+                  controller: passwordController,
                   hintText: 'Enter your password',
-                  onChanged: (value) => password = value,
                   obscureText: !_passwordVisible,
-                  validator: (value) => value?.isEmpty ?? true ? 'Please enter your password' : null,
+                  validator: (value) => value?.isEmpty ?? true
+                      ? 'Please enter your password'
+                      : null,
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                      _passwordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                     ),
                     onPressed: () {
                       setState(() {
@@ -162,13 +194,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 20.0),
                 _buildTextField(
+                  controller: confirmPasswordController,
                   hintText: 'Confirm your password',
-                  onChanged: (value) => confirmPassword = value,
                   obscureText: !_confirmPasswordVisible,
-                  validator: (value) => value != password ? 'Passwords do not match' : null,
+                  validator: (value) => value != passwordController.text
+                      ? 'Passwords do not match'
+                      : null,
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _confirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      _confirmPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                     ),
                     onPressed: () {
                       setState(() {
@@ -181,14 +217,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ElevatedButton(
                   onPressed: _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue, // Background color
-                    foregroundColor: Colors.white, // Text color
-                    padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 50, vertical: 15),
                     textStyle: const TextStyle(fontSize: 18),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10.0),
                     ),
-                    minimumSize: const Size(250, 50), // Width and height of the button
+                    minimumSize: const Size(250, 50),
                   ),
                   child: const Text('Register'),
                 ),
@@ -215,8 +252,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   Widget _buildTextField({
+    required TextEditingController controller,
     required String hintText,
-    required ValueChanged<String> onChanged,
     bool obscureText = false,
     TextInputType keyboardType = TextInputType.text,
     FormFieldValidator<String>? validator,
@@ -227,7 +264,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       shadowColor: Colors.black26,
       borderRadius: BorderRadius.circular(10.0),
       child: TextFormField(
-        onChanged: onChanged,
+        controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
         decoration: InputDecoration(
@@ -238,7 +275,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             borderRadius: BorderRadius.circular(10.0),
             borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
           suffixIcon: suffixIcon,
         ),
         validator: validator,

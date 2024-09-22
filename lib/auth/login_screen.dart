@@ -176,8 +176,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 50, vertical: 15),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                   textStyle: const TextStyle(fontSize: 18),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0),
@@ -191,12 +191,12 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 10.0),
               TextButton(
                 onPressed: () {
-                   Navigator.pushNamed(context, '/forgotPassword');
+                  Navigator.pushNamed(context, '/forgotPassword');
                 },
                 child: const Text(
-                    'Forgot Password?',
-                    style: TextStyle(color: Colors.blue, fontSize: 16.0),
-                  ),
+                  'Forgot Password?',
+                  style: TextStyle(color: Colors.blue, fontSize: 16.0),
+                ),
               ),
               const SizedBox(height: 10.0),
               const Text(
@@ -214,19 +214,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 20.0),
-              // Uncomment and implement social login when ready
-              // const Text('Or login with'),
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.center,
-              //   children: [
-              //     IconButton(
-              //       icon: Image.asset('assets/google_logo.png'),
-              //       onPressed: () {
-              //         // Handle Google sign-in
-              //       },
-              //     ),
-              //   ],
-              // ),
             ],
           ),
         ),

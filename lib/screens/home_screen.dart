@@ -36,10 +36,10 @@ class _HomeScreenState extends State<HomeScreen> {
           gradient: RadialGradient(
             colors: [Colors.white, Color.fromARGB(255, 75, 126, 214)],
             center: Alignment.topRight,
-            // end: Alignment.bottomRight,
           ),
         ),
-        child: Padding(
+        child: SingleChildScrollView(
+          // Added scrollable container to avoid overflow
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 70),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,22 +59,28 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  CustomCard(
-                    icon: Icons.play_arrow,
-                    title: 'Start Quiz',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/levels');
-                    },
-                    height: 140.0, // Adjusted height
+                  Expanded(
+                    // Ensuring cards fit within the screen width
+                    child: CustomCard(
+                      icon: Icons.play_arrow,
+                      title: 'Start Quiz',
+                      onTap: () {
+                        Navigator.pushNamed(context, '/levels');
+                      },
+                      height: 140.0, // Adjusted height
+                    ),
                   ),
                   const SizedBox(width: 16),
-                  CustomCard(
-                    icon: Icons.leaderboard,
-                    title: 'Leaderboard',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/leaderboard');
-                    },
-                    height: 140.0, // Adjusted height
+                  Expanded(
+                    // Ensuring cards fit within the screen width
+                    child: CustomCard(
+                      icon: Icons.leaderboard,
+                      title: 'Leaderboard',
+                      onTap: () {
+                        Navigator.pushNamed(context, '/leaderboard');
+                      },
+                      height: 140.0, // Adjusted height
+                    ),
                   ),
                 ],
               ),
@@ -94,12 +100,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.grey.shade100, offset: Offset(0, 1))], // Shadow effect
+                  boxShadow: [
+                    BoxShadow(color: Colors.grey.shade100, offset: Offset(0, 1))
+                  ], // Shadow effect
                 ),
                 padding: const EdgeInsets.all(25.0),
                 child: const Text(
                   'Check out the new levels added to the quiz! We have exciting challenges waiting for you.',
-                  style: TextStyle(fontSize: 16, color: Colors.black87), // Darker text color
+                  style: TextStyle(
+                      fontSize: 16, color: Colors.black87), // Darker text color
                 ),
               ),
               const SizedBox(height: 20),
@@ -118,12 +127,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.grey.shade100, offset: Offset(0, 1))], // Shadow effect
+                  boxShadow: [
+                    BoxShadow(color: Colors.grey.shade100, offset: Offset(0, 1))
+                  ], // Shadow effect
                 ),
                 padding: const EdgeInsets.all(25.0),
                 child: const Text(
                   'You completed the Beginner Level 1 quiz with a score of 90%. Great job!',
-                  style: TextStyle(fontSize: 16, color: Colors.black87), // Darker text color
+                  style: TextStyle(
+                      fontSize: 16, color: Colors.black87), // Darker text color
                 ),
               ),
             ],
@@ -141,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.leaderboard, size: 40), // Larger icon
-            label: 'Leaderboard', 
+            label: 'Leaderboard',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person, size: 40), // Larger icon

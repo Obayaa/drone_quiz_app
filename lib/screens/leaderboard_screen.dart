@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   @override
@@ -8,29 +9,12 @@ class LeaderboardScreen extends StatefulWidget {
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
   int _selectedLevel = 0;
   final List<String> levels = ['Beginner', 'Intermediate', 'Advanced'];
-
-  // Mock data
-  final Map<int, List<Map<String, dynamic>>> leaderboardData = {
-    0: [
-      {'rank': 1, 'username': 'UserA', 'score': 90},
-      {'rank': 2, 'username': 'UserB', 'score': 85},
-      {'rank': 3, 'username': 'UserC', 'score': 80},
-    ],
-    1: [
-      {'rank': 1, 'username': 'UserD', 'score': 95},
-      {'rank': 2, 'username': 'UserE', 'score': 90},
-      {'rank': 3, 'username': 'UserF', 'score': 85},
-    ],
-    2: [
-      {'rank': 1, 'username': 'UserG', 'score': 100},
-      {'rank': 2, 'username': 'UserH', 'score': 95},
-      {'rank': 3, 'username': 'UserI', 'score': 90},
-    ],
-  };
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Leaderboard'),
       ),
@@ -53,7 +37,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   },
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20.0, vertical: 10.0),
                     decoration: BoxDecoration(
                       color: isSelected ? Colors.blueAccent : Colors.grey[300],
                       borderRadius: BorderRadius.circular(30.0),
@@ -74,19 +59,72 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           ),
           // Leaderboard List
           Expanded(
-            child: ListView.builder(
-              itemCount: leaderboardData[_selectedLevel]!.length,
-              itemBuilder: (context, index) {
-                final data = leaderboardData[_selectedLevel]![index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      child: Text(data['rank'].toString()),
-                    ),
-                    title: Text(data['username']),
-                    trailing: Text(data['score'].toString()),
-                  ),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('users')
+                  .where('level', isEqualTo: _selectedLevel + 1)
+                  .orderBy('score', descending: true)
+                  .limit(10)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  print('Error: ${snapshot.error}');
+                  if (snapshot.error.toString().contains('indexes')) {
+                    return const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Initializing leaderboard...'),
+                          SizedBox(height: 10),
+                          CircularProgressIndicator(),
+                          SizedBox(height: 10),
+                          Text('This may take a few minutes.'),
+                        ],
+                      ),
+                    );
+                  }
+                  return const Center(
+                      child:
+                          Text('An error occurred. Please try again later.'));
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                      child: Text(
+                          'No data available for ${levels[_selectedLevel]}'));
+                }
+
+                final users = snapshot.data!.docs;
+
+                return ListView.builder(
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final userData =
+                        users[index].data() as Map<String, dynamic>;
+                    final rank = index + 1;
+                    final username = userData['name'] ?? 'Anonymous';
+                    final score = userData['score'] ?? 0;
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                          vertical: 8.0, horizontal: 16.0),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: _getRankColor(rank),
+                          child: Text(
+                            rank.toString(),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(username),
+                        trailing: Text(score.toString()),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -94,5 +132,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         ],
       ),
     );
+  }
+
+  Color _getRankColor(int rank) {
+    switch (rank) {
+      case 1:
+        return Colors.yellow[700]!;
+      case 2:
+        return Colors.grey[400]!;
+      case 3:
+        return Colors.brown[300]!;
+      default:
+        return Colors.blue;
+    }
   }
 }

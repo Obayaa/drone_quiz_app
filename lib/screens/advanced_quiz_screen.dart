@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Question {
   final String questionText;
@@ -21,62 +23,113 @@ class AdvancedQuizScreen extends StatefulWidget {
 }
 
 class _AdvancedQuizScreenState extends State<AdvancedQuizScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   int currentQuestionIndex = 0;
   int score = 0;
   int? selectedOption;
   bool showExplanation = false;
   late Timer _timer;
   int _remainingTime = 30; // 30 seconds for each question
+  final int passMark = 7; // Set the passing score to 70% of 10 questions
 
   final List<Question> questions = [
     Question(
       questionText: "What is the function of the GPS module in a drone?",
-      options: ["To provide power to the drone", "To stabilize the drone during flight", "To enable precise navigation and positioning", "To control the drone's speed"],
+      options: [
+        "To provide power to the drone",
+        "To stabilize the drone during flight",
+        "To enable precise navigation and positioning",
+        "To control the drone's speed"
+      ],
       correctAnswerIndex: 2,
     ),
     Question(
-      questionText: "Which type of drone is typically used for inspection of large infrastructures like bridges and wind turbines?",
-      options: ["Fixed-wing drones", "Single-rotor helicopters", "Multi-rotor drones", "Blimps"],
+      questionText:
+          "Which type of drone is typically used for inspection of large infrastructures like bridges and wind turbines?",
+      options: [
+        "Fixed-wing drones",
+        "Single-rotor helicopters",
+        "Multi-rotor drones",
+        "Blimps"
+      ],
       correctAnswerIndex: 2,
     ),
     Question(
       questionText: "What is 'geofencing' in the context of drones?",
-      options: ["A method for preventing drone theft", "A system that defines the drone's flight boundaries", "A feature that boosts drone speed", "A camera stabilization technique"],
+      options: [
+        "A method for preventing drone theft",
+        "A system that defines the drone's flight boundaries",
+        "A feature that boosts drone speed",
+        "A camera stabilization technique"
+      ],
       correctAnswerIndex: 1,
     ),
     Question(
-      questionText: "Which of the following is a common legal restriction for recreational drone flights in most countries?",
-      options: ["Must fly below 400 feet", "Must be equipped with a parachute", "Must be flown indoors", "Must have a pilot license"],
+      questionText:
+          "Which of the following is a common legal restriction for recreational drone flights in most countries?",
+      options: [
+        "Must fly below 400 feet",
+        "Must be equipped with a parachute",
+        "Must be flown indoors",
+        "Must have a pilot license"
+      ],
       correctAnswerIndex: 0,
     ),
     Question(
-      questionText: "What is the primary purpose of a drone's telemetry system?",
-      options: ["To control the drone's flight path", "To provide real-time data on the drone's status", "To enhance camera quality", "To increase battery life"],
+      questionText:
+          "What is the primary purpose of a drone's telemetry system?",
+      options: [
+        "To control the drone's flight path",
+        "To provide real-time data on the drone's status",
+        "To enhance camera quality",
+        "To increase battery life"
+      ],
       correctAnswerIndex: 1,
     ),
     Question(
-      questionText: "Which technology is used in drones to determine altitude by measuring air pressure?",
+      questionText:
+          "Which technology is used in drones to determine altitude by measuring air pressure?",
       options: ["LIDAR", "GPS", "Barometer", "Sonar"],
       correctAnswerIndex: 2,
     ),
     Question(
-      questionText: "What is the primary purpose of an FPV (First Person View) system in a drone?",
-      options: ["To control the drone via voice commands", "To provide a live video feed from the drone's perspective", "To increase the drone's speed", "To stabilize the drone's flight"],
+      questionText:
+          "What is the primary purpose of an FPV (First Person View) system in a drone?",
+      options: [
+        "To control the drone via voice commands",
+        "To provide a live video feed from the drone's perspective",
+        "To increase the drone's speed",
+        "To stabilize the drone's flight"
+      ],
       correctAnswerIndex: 1,
     ),
     Question(
-      questionText: "Which component of a drone is responsible for converting electrical energy into mechanical energy?",
+      questionText:
+          "Which component of a drone is responsible for converting electrical energy into mechanical energy?",
       options: ["Battery", "Motor", "ESC", "Propeller"],
       correctAnswerIndex: 1,
     ),
     Question(
       questionText: "What does the term 'hovering' mean in drone terminology?",
-      options: ["Flying in circles", "Flying at a constant altitude without moving horizontally", "Ascending rapidly", "Descending rapidly"],
+      options: [
+        "Flying in circles",
+        "Flying at a constant altitude without moving horizontally",
+        "Ascending rapidly",
+        "Descending rapidly"
+      ],
       correctAnswerIndex: 1,
     ),
     Question(
-      questionText: "Which of the following is a benefit of using drones in search and rescue operations?",
-      options: ["High cost", "Limited range", "Real-time aerial imagery", "Heavy weight"],
+      questionText:
+          "Which of the following is a benefit of using drones in search and rescue operations?",
+      options: [
+        "High cost",
+        "Limited range",
+        "Real-time aerial imagery",
+        "Heavy weight"
+      ],
       correctAnswerIndex: 2,
     ),
   ];
@@ -106,7 +159,8 @@ class _AdvancedQuizScreenState extends State<AdvancedQuizScreen> {
       setState(() {
         selectedOption = selectedIndex;
         showExplanation = true;
-        if (selectedIndex == questions[currentQuestionIndex].correctAnswerIndex) {
+        if (selectedIndex ==
+            questions[currentQuestionIndex].correctAnswerIndex) {
           score++;
         }
         _timer.cancel();
@@ -142,26 +196,47 @@ class _AdvancedQuizScreenState extends State<AdvancedQuizScreen> {
     });
   }
 
-  void showResults() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Quiz Completed!'),
-          content: Text('Your score is $score out of ${questions.length}'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(); 
-              },
-            ),
-          ],
-        );
-      },
-    );
+  void showResults() async {
+    double percentageScore = (score / questions.length) * 100;
+    User? user = _auth.currentUser;
+
+    if (user != null) {
+      String userId = user.uid;
+
+      if (score >= passMark) {
+        await _firestore.collection('users').doc(userId).update({
+          'advancedUnlocked': true,
+          'score': FieldValue.increment(score),
+        });
+      }
+
+      String message = score >= passMark
+          ? "Congratulations! You've completed all levels successfully."
+          : "You scored $score out of ${questions.length}. Keep practicing to improve your score.";
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(score >= passMark
+                ? 'Quiz Completed!'
+                : 'Quiz Completed, Try Again!'),
+            content: Text(message),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context)
+                      .pop(); // Return to levels selection screen
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -178,7 +253,7 @@ class _AdvancedQuizScreenState extends State<AdvancedQuizScreen> {
         title: const Text('Advanced Quiz'),
         foregroundColor: Colors.white,
         backgroundColor: Colors.blueAccent.shade700,
-        automaticallyImplyLeading: false, 
+        automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -198,13 +273,21 @@ class _AdvancedQuizScreenState extends State<AdvancedQuizScreen> {
                 style: const TextStyle(fontSize: 19, color: Colors.black),
               ),
               const SizedBox(height: 16),
-              ...questions[currentQuestionIndex].options.asMap().entries.map((entry) {
+              ...questions[currentQuestionIndex]
+                  .options
+                  .asMap()
+                  .entries
+                  .map((entry) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: selectedOption == entry.key
-                          ? (selectedOption == questions[currentQuestionIndex].correctAnswerIndex ? Colors.green : Colors.red)
+                          ? (selectedOption ==
+                                  questions[currentQuestionIndex]
+                                      .correctAnswerIndex
+                              ? Colors.green
+                              : Colors.red)
                           : const Color.fromARGB(255, 230, 230, 230),
                       foregroundColor: Colors.black,
                       minimumSize: const Size(double.infinity, 50),
@@ -212,7 +295,9 @@ class _AdvancedQuizScreenState extends State<AdvancedQuizScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    onPressed: selectedOption == null ? () => answerQuestion(entry.key) : null, // Disable all buttons if an option has been selected
+                    onPressed: selectedOption == null
+                        ? () => answerQuestion(entry.key)
+                        : null,
                     child: Text(
                       entry.value,
                       style: const TextStyle(fontSize: 17),
@@ -223,15 +308,20 @@ class _AdvancedQuizScreenState extends State<AdvancedQuizScreen> {
               if (showExplanation) ...[
                 const SizedBox(height: 17),
                 Text(
-                  selectedOption == questions[currentQuestionIndex].correctAnswerIndex
+                  selectedOption ==
+                          questions[currentQuestionIndex].correctAnswerIndex
                       ? 'Correct!'
                       : 'Incorrect.\nThe correct answer was: ${questions[currentQuestionIndex].options[questions[currentQuestionIndex].correctAnswerIndex]}',
                   style: TextStyle(
                     fontSize: 14,
-                    color: selectedOption == questions[currentQuestionIndex].correctAnswerIndex ? Colors.green : Colors.red,
+                    color: selectedOption ==
+                            questions[currentQuestionIndex].correctAnswerIndex
+                        ? Colors.green
+                        : Colors.red,
                   ),
                 ),
-                if (selectedOption != questions[currentQuestionIndex].correctAnswerIndex)
+                if (selectedOption !=
+                    questions[currentQuestionIndex].correctAnswerIndex)
                   Text(
                     'Explanation: The correct answer is ${questions[currentQuestionIndex].options[questions[currentQuestionIndex].correctAnswerIndex]} because it is the widely accepted definition or characteristic.',
                     style: const TextStyle(fontSize: 13, color: Colors.black),
@@ -247,7 +337,8 @@ class _AdvancedQuizScreenState extends State<AdvancedQuizScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(foregroundColor: Colors.grey),
+                    style:
+                        ElevatedButton.styleFrom(foregroundColor: Colors.grey),
                     onPressed: skipQuestion,
                     child: const Text('Skip'),
                   ),
